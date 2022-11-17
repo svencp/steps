@@ -1,6 +1,6 @@
 /*
 Most of my odd structs are in here.
-2022.08.09      Sven Ponelat
+2022.11.17      Sven Ponelat
 
 */
 
