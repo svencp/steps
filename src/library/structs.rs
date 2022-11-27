@@ -6,7 +6,6 @@ Most of my odd structs are in here.
 
 use std::collections::{BTreeSet, BTreeMap};
 use termion::{color, style};
-use crate::library::my_utils::*;
 use std::process::exit;
 use std::time::{UNIX_EPOCH, Duration};
 use chrono::*;
@@ -18,30 +17,24 @@ pub const WEEK_SECS: i64         = 604800;
 
 
 
-// Colors
-pub struct Colors {
-    pub color_active_bg: color::Rgb,                            // Orange
-    pub color_black_bg: color::Rgb,                             // Black
-    pub color_complete_orphan: color::Rgb,                      // White
-    pub color_feedback_orange: color::Rgb,                      // Orange
-    pub color_recur_chain_fg: color::Rgb,                       // Light Blue
-    pub color_recur_period_fg: color::Rgb,                      // Dark Blue
-    pub color_tagged: color::Rgb,                               // Dark Green
-    pub color_overdue: color::Rgb,                               // Dark Red
+pub struct Incoming {
+    pub date: i64,                           
+    pub steps: i64,         
+    pub duration: i64,          // seconds
+    pub distance: i64,          // meters
+    pub calories: i64,          // kcal
+    pub floors: i64,            // 3m heights               
 }
 
-impl Colors {
-    pub fn new() -> Colors {
-        Colors { 
-            color_active_bg: color::Rgb (255,255,255),
-            color_black_bg: color::Rgb (255,255,255),               
-            color_complete_orphan: color::Rgb (255,255,255),        
-            color_feedback_orange: color::Rgb (255,255,255),
-            color_recur_chain_fg: color::Rgb (255,255,255),
-            color_recur_period_fg: color::Rgb (255,255,255),
-            color_tagged: color::Rgb (255,255,255),
-            color_overdue: color::Rgb (255,255,255),
-        }
+impl Incoming {
+    pub fn new() -> Incoming {
+        Incoming {  date: 0,
+                    steps: 0, 
+                    duration: 0, 
+                    distance: 0, 
+                    calories: 0, 
+                    floors: 0 
+                }
     }
 
     
@@ -55,6 +48,7 @@ impl Colors {
 
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Functions @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@           @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 
 
 
@@ -75,7 +69,6 @@ mod tests {
     // #[ignore]
     #[test]
     fn t001_new() {
-
 
         assert_eq!(4,4);
         
