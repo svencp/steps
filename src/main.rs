@@ -50,7 +50,7 @@ fn main() {
 
     let res_conversion = convert_from_strings(res_load.unwrap());
 
-
+    let hh = 88; 
 
 
 
@@ -107,6 +107,7 @@ where P: AsRef<Path>, {
 pub fn convert_from_strings(array: Vec<Vec<String>>) -> Result<Vec<Incoming>,String> {
     let mut ret: Vec<Incoming> = Vec::new();  
     let mut item_counter = 0;
+
 
     for day in array {
         item_counter += 1;

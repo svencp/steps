@@ -23,7 +23,8 @@ pub struct Incoming {
     pub duration: i64,          // seconds
     pub distance: i64,          // meters
     pub calories: i64,          // kcal
-    pub floors: i64,            // 3m heights               
+    pub floors: i64,            // 3m heights          
+    pub start_month: i64,       // start of the month     
 }
 
 impl Incoming {
@@ -33,7 +34,8 @@ impl Incoming {
                     duration: 0, 
                     distance: 0, 
                     calories: 0, 
-                    floors: 0 
+                    floors: 0,
+                    start_month: 0,
                 }
     }
 
@@ -41,7 +43,7 @@ impl Incoming {
 
 
 
-} // end of impl Colors
+} // end of impl Incoming
 
 
 
