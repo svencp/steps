@@ -20,8 +20,9 @@ use std::env;
 use std::process::exit;
 use std::path::Path;
 use std::fs::*;
-// use std::io::{prelude::*, BufReader};
-use std::io::{self, BufRead};
+use std::io::{BufWriter, Write};
+use std::collections::BTreeMap;
+use chrono::*;
 
 
 pub const VERSION: &str            = env!("CARGO_PKG_VERSION");
@@ -30,12 +31,12 @@ pub const VERSION: &str            = env!("CARGO_PKG_VERSION");
 
 fn main() {
     let arguments: Vec<String> = env::args().collect();
-    let infile:  &str = "/home/me/Downloads/activity-export-daily.csv"; 
+    let infile:  &str = "/DATA/pedometer/daily.csv"; 
     let num_fields = 6;
     let skip = 2;
     let delimiter = ";";
-    let outfile: &str = "/DATA/pedometer/activity-export.csv"; 
-    let mut in_array: Vec<Incoming> = Vec::new();
+    let outfile: &str = "/DATA/pedometer/months.csv"; 
+    let mut baskets: BTreeMap<i64,Basket> = BTreeMap::new();
 
     sort_out_arguments(&arguments);
 
@@ -46,11 +47,87 @@ fn main() {
         feedback(Feedback::Error, message);
         exit(17);
     }
-    // let str_array = res_load.unwrap();
 
     let res_conversion = convert_from_strings(res_load.unwrap());
+    if res_conversion.is_err() {
+        let message = res_conversion.err().unwrap().to_string();
+        feedback(Feedback::Error, message);
+        exit(17);
+    }
 
-    let hh = 88; 
+
+    
+    // main loop
+    for day in res_conversion.unwrap() {
+
+        let dc = day.clone();
+        
+        let basket = Basket::new(
+                                dc.start_month,
+                                dc.steps,
+                                dc.distance,
+                                dc.calories,
+                                dc.duration,
+                                dc.floors,
+                                dc.steps,
+                                dc.distance,
+                                dc.calories,
+                                dc.duration,
+                                dc.floors,
+                            );
+
+        let key = &basket.start_month;                    
+
+        match baskets.contains_key(&key) {
+
+            // need to update
+            true => {
+                let mut modified = baskets.remove_entry(key).unwrap().1;
+
+                modified.total_steps    += basket.steps; 
+                modified.total_distance += basket.distance; 
+                modified.total_calories += basket.calories; 
+                modified.total_duration += basket.duration; 
+                modified.total_floors   += basket.floors; 
+
+                // comparisons
+                if basket.steps > modified.steps {
+                    modified.steps = basket.steps;
+                } 
+
+                if basket.distance > modified.distance {
+                    modified.distance = basket.distance;
+                }
+
+                if basket.calories > modified.calories {
+                    modified.calories = basket.calories;
+                }
+
+                if basket.duration > modified.duration {
+                    modified.duration = basket.duration;
+                }
+
+                if basket.floors > modified.floors {
+                    modified.floors = basket.floors;
+                }
+
+                baskets.insert(*key, modified);
+            }
+
+            // need to create a new entry
+            false => {
+                baskets.insert(basket.start_month, basket);
+            }
+        }
+    }
+    
+    // output file
+    let write_res = write_outfile(outfile,&baskets);
+    if write_res.is_err() {
+        let message = write_res.err().unwrap().to_string();
+        feedback(Feedback::Error, message);
+        exit(17);
+    }
 
 
 
@@ -94,13 +171,13 @@ pub fn sort_out_arguments(arguments: &Vec<String>) {
 }
 
 
-// The output is wrapped in a Result to allow matching on errors
-// Returns an Iterator to the Reader of the lines of the file.
-fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-where P: AsRef<Path>, {
-    let file = File::open(filename)?;
-    Ok(io::BufReader::new(file).lines())
-}
+// // The output is wrapped in a Result to allow matching on errors
+// // Returns an Iterator to the Reader of the lines of the file.
+// fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+// where P: AsRef<Path>, {
+//     let file = File::open(filename)?;
+//     Ok(io::BufReader::new(file).lines())
+// }
 
 
 // a function to convert from string vector to a vector of structs
@@ -121,7 +198,8 @@ pub fn convert_from_strings(array: Vec<Vec<String>>) -> Result<Vec<Incoming>,Str
             let message = format!("The date component of item number {} did not convert!",item_counter).to_string();
             return Err(message);
         }
-        incoming.date = r_date.unwrap();
+        incoming.date        = r_date.clone().unwrap();
+        incoming.start_month = lts_get_first_of_month_timestamp(r_date.unwrap());
 
         // steps
         let r_steps = day[1].parse::<i64>();
@@ -171,7 +249,76 @@ pub fn convert_from_strings(array: Vec<Vec<String>>) -> Result<Vec<Incoming>,Str
     Ok(ret)
 }
 
+#[allow(deprecated)]
+// write output to csv file
+pub fn write_outfile(csv_file: &str, months: &BTreeMap<i64,Basket>) -> Result<(),String> {
+    let ch: char = ',';
+    let path = Path::new(csv_file);
+    let f = match OpenOptions::new()
+                                    .read(false)
+                                    .write(true)
+                                    .create(true)
+                                    .truncate(true)
+                                    .open(path)  {
+        
+        Err(_) => { return Err("Problem opening export to csv file".to_string()); }
+        Ok(file)   => { file }
+    };
 
+    let mut file = BufWriter::new(f);
+
+    for key in months {
+        let mut line: String = String::new();
+        let basket = key.1;
+
+        let unix_timestamp = key.clone().0.to_owned();
+        let timestamp = NaiveDateTime::from_timestamp(unix_timestamp, 0);
+        let date_string = timestamp.format("%b %Y").to_string();
+
+        line.push_str(date_string.as_str());
+        line.push(ch);
+        line.push_str(basket.total_steps.to_string().as_str());
+        line.push(ch);
+
+        let mut km = format!("{:.1}", basket.total_distance  as f64 / 1000.0);
+        line.push_str(km.as_str());
+        line.push(ch);
+        line.push_str(basket.total_calories.to_string().as_str());
+        line.push(ch);
+
+        let mut hours = format!("{:.1}", basket.total_duration  as f64 / 3600.0);
+        line.push_str(hours.as_str());
+        line.push(ch);
+        line.push_str(basket.total_floors.to_string().as_str());
+        line.push(ch);
+        line.push(ch);
+        line.push(ch);
+
+        line.push_str(basket.steps.to_string().as_str());
+        line.push(ch);
+
+        km = format!("{:.1}", basket.distance  as f64 / 1000.0);
+        line.push_str(km.as_str());
+        line.push(ch);
+        line.push_str(basket.calories.to_string().as_str());
+        line.push(ch);
+
+        hours = format!("{:.1}", basket.duration  as f64 / 3600.0);
+        line.push_str(hours.as_str());
+        line.push(ch);
+        line.push_str(basket.floors.to_string().as_str());
+        line.push('\n');
+
+        match file.write_all(line.as_bytes()) {
+            Err(_) => { return Err("Problem writing data csv file".to_string()); } 
+            _      => {  } 
+        }
+    }
+
+
+    Ok(())
+
+}
 
 
 
