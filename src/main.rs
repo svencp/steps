@@ -4,6 +4,8 @@
     
     2022.11.17      Sven Ponelat
 
+    Change Log
+    2024-02-03      Effect any changes in the file and make it work on nixos
     
 
 
